@@ -1,13 +1,16 @@
 import os
 import streamlit as st
+import openai
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# .envファイルから環境変数を読み込む
-load_dotenv()
+# Streamlit SecretsからAPIキーを取得
+api_key = os.getenv('OPENAI_API_KEY')
 
-# OpenAI APIキーを環境変数から取得
-openai_api_key = os.getenv('OPENAI_API_KEY')
+if not api_key:
+    st.error("APIキーが設定されていません。")
+
+openai.api_key = api_key
 
 # OpenAIクライアントを作成
 client = OpenAI(api_key=openai_api_key)
