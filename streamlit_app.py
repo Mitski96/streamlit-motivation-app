@@ -1,19 +1,11 @@
-import os
 import streamlit as st
 from openai import OpenAI
-from dotenv import load_dotenv
-
-# .envファイルから環境変数を読み込む
-load_dotenv()
-
-# OpenAI APIキーを環境変数から取得
-openai_api_key = os.getenv('OPENAI_API_KEY')
-
-# OpenAIクライアントを作成
-client = OpenAI(api_key=openai_api_key)
 
 # StreamlitのUI
 st.title("自己紹介文生成アプリ")
+
+# APIキー入力欄
+api_key = st.text_input("OpenAI APIキーを入力してください:", type="password")
 
 # 入力フォーム
 university = st.text_input("出身大学（学部）を入力してください:")
@@ -24,7 +16,10 @@ additional_info = st.text_area("追加情報を入力してください (例: �
 
 # ボタン
 if st.button("自己紹介文を生成"):
-    if university and age and skills and why_hire:
+    if api_key and university and age and skills and why_hire:
+        # OpenAIクライアントを作成
+        client = OpenAI(api_key=api_key)
+        
         # プロンプト作成
         prompt = (
             f"以下の情報を基に、企業向けの自己紹介文を生成してください。\n\n"
@@ -37,16 +32,19 @@ if st.button("自己紹介文を生成"):
         )
         
         # OpenAI APIリクエストの送信
-        completion = client.completions.create(
-            model="gpt-3.5-turbo-instruct",
-            prompt=prompt,
-            max_tokens=400,
-            temperature=0.7,
-        )
-        
-        # 自己紹介文の出力
-        introduction = completion.choices[0].text.strip()
-        st.success("自己紹介文が生成されました！")
-        st.write(introduction)
+        try:
+            completion = client.completions.create(
+                model="gpt-3.5-turbo-instruct",
+                prompt=prompt,
+                max_tokens=400,
+                temperature=0.7,
+            )
+            
+            # 自己紹介文の出力
+            introduction = completion.choices[0].text.strip()
+            st.success("自己紹介文が生成されました！")
+            st.write(introduction)
+        except Exception as e:
+            st.error(f"エラーが発生しました: {e}")
     else:
-        st.error("すべての必須フィールド（出身大学、年齢、スキル、貢献ポイント）を入力してください。")
+        st.error("すべての必須フィールド（APIキー、出身大学、年齢、スキル、貢献ポイント）を入力してください。")
