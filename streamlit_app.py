@@ -2,6 +2,8 @@ import streamlit as st
 import requests
 from bs4 import BeautifulSoup
 import openai
+from dotenv import load_dotenv
+import os
 
 # OpenAI APIキーを設定
 openai.api_key = os.getenv('OPENAI_API_KEY')
