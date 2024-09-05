@@ -1,50 +1,61 @@
 import streamlit as st
-from openai import OpenAI
+import requests
+from bs4 import BeautifulSoup
+import openai
+from dotenv import load_dotenv
+import os
+
+# OpenAI APIキーを設定
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
 # StreamlitのUI
-st.title("自己紹介文生成アプリ")
-
-# APIキー入力欄
-api_key = st.text_input("OpenAI APIキーを入力してください:", type="password")
+st.title("志望動機生成アプリ")
 
 # 入力フォーム
-university = st.text_input("出身大学（学部）を入力してください:")
-age = st.text_input("年齢を入力してください:")
-skills = st.text_area("あなたのスキルを入力してください (例: Python, データ分析, マネジメント):")
-why_hire = st.text_area("企業に貢献できるポイントを入力してください (例: 強みや経験):")
-additional_info = st.text_area("追加情報を入力してください (例: 性格、情熱、目標など):")
+url = st.text_input("企業のURLを入力してください:")
+keywords = st.text_input("関連キーワードを入力してください（カンマで区切ってください）:")
+details = st.text_area("詳細を入力してください:")
+
+# サイトを探索し、リンクとテキストを取得する関数
+def explore_site(url):
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # ページ内のテキスト収集
+        text_content = soup.get_text(separator="\n")
+
+        return text_content
+    except Exception as e:
+        return f"エラーが発生しました: {e}"
 
 # ボタン
-if st.button("自己紹介文を生成"):
-    if api_key and university and age and skills and why_hire:
-        # OpenAIクライアントを作成
-        client = OpenAI(api_key=api_key)
-        
-        # プロンプト作成
+if st.button("志望動機を生成"):
+    if url and keywords:
+        # サイトのテキストを取得
+        site_text = explore_site(url)
+
+        # キーワードをリストに変換
+        keywords_list = [k.strip() for k in keywords.split(',')]
+
+        # キーワードとサイトの情報を組み合わせてプロンプト作成
         prompt = (
-            f"以下の情報を基に、企業向けの自己紹介文を生成してください。\n\n"
-            f"出身大学（学部）: {university}\n"
-            f"年齢: {age}\n"
-            f"スキル: {skills}\n"
-            f"企業に貢献できるポイント: {why_hire}\n"
-            f"追加情報: {additional_info}\n\n"
-            "自己紹介文:"
+            f"以下のキーワードを考慮して、次の企業に合った志望動機を生成してください。\n"
+            f"キーワード: {', '.join(keywords_list)}\n\n"
+            f"企業サイトのテキスト:\n{site_text[:1000]}...\n\n"  # テキストが長い場合はカット
+            f"追加の詳細:\n{details}"
         )
-        
+
         # OpenAI APIリクエストの送信
-        try:
-            completion = client.completions.create(
-                model="gpt-3.5-turbo-instruct",
-                prompt=prompt,
-                max_tokens=400,
-                temperature=0.7,
-            )
-            
-            # 自己紹介文の出力
-            introduction = completion.choices[0].text.strip()
-            st.success("自己紹介文が生成されました！")
-            st.write(introduction)
-        except Exception as e:
-            st.error(f"エラーが発生しました: {e}")
+        response = openai.Completion.create(
+            engine="gpt-3.5-turbo-instruct",
+            prompt=prompt,
+            max_tokens=400
+        )
+
+        # 志望動機の出力
+        motivation = response.choices[0].text.strip()
+        st.success("志望動機が生成されました！")
+        st.write(motivation)
     else:
-        st.error("すべての必須フィールド（APIキー、出身大学、年齢、スキル、貢献ポイント）を入力してください。")
+        st.error("URLとキーワードは必須です。")
